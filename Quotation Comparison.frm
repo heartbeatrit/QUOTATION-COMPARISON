@@ -52,7 +52,7 @@ Begin VB.Form FrmReport
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Format          =   53084161
+      Format          =   53739521
       CurrentDate     =   41176
    End
    Begin MSComCtl2.DTPicker ToDate 
@@ -73,7 +73,7 @@ Begin VB.Form FrmReport
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Format          =   53084161
+      Format          =   53739521
       CurrentDate     =   41176
    End
    Begin MSHierarchicalFlexGridLib.MSHFlexGrid GridQuote 
@@ -138,7 +138,7 @@ Begin VB.Form FrmReport
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      ContainerID     =   787394
+      ContainerID     =   724596
    End
    Begin VB.Label lblDemo 
       BackStyle       =   0  'Transparent
@@ -550,10 +550,10 @@ Private Sub BtnSelParty_Click()
                     End If
                 Next
     
-            Dim n As Integer
+            Dim n As Integer, y As Integer
             
             n = 7
-            
+            y = n
             Dim mRecordSet As New ADODB.Recordset
             Dim mQuoteStk As New ADODB.Recordset
             
@@ -575,17 +575,20 @@ Private Sub BtnSelParty_Click()
                                             GridQuote.Cols = GridQuote.Cols + 1
                                         End If
                                         'GridQuote.TextMatrix(0, n) = mRs!PartyName + " # " + mRs!QSrl
-                                        GridQuote.TextMatrix(0, n) = mRs!PartyName + "QtnNo :" + mRs!QSrl
+                                        
+                                        GridQuote.TextMatrix(0, y) = mRs!PartyName + "QtnNo :" + mRs!QSrl
+                                        
                                         GridQuote.Col = n
                                         GridQuote.Row = 0
                                         GridQuote.CellFontBold = True
                                         GridQuote.WordWrap = True
                                         GridQuote.RowHeight(0) = 700
                                         GridQuote.ColWidth(n) = 2500
-                                        
+                                        Dim mQuoteOld As String, xn As Integer
+                                        mQuoteOld = ""
                                    For i = 1 To GridQuote.Rows - 1
                                         If GridQuote.TextMatrix(i, 1) <> "" Then
-                                            SqlStr = "Select TmpQuoteStk.Type,TmpQuotestk.Rate,TmpQuoteStk.Qty*TmpQuoteStk.Rate as Val,TmpQuoteStk.Disc from TmpQuote Q Inner join TmpQuoteStk on Q.Branch = TmpQuoteStk.Branch And Q.YearCode = TmpQuoteStk.Yearcode And  Q.type = TmpQuoteStk.type And Q.Prefix = TmpQuoteStk.Prefix And Q.Srl = TmpQuoteStk.Srl Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' AND PENDING <> 0 And " _
+                                            SqlStr = "Select TmpQuoteStk.Srl,TmpQuoteStk.Type,TmpQuotestk.Rate,TmpQuoteStk.Qty*TmpQuoteStk.Rate as Val,TmpQuoteStk.Disc from TmpQuote Q Inner join TmpQuoteStk on Q.Branch = TmpQuoteStk.Branch And Q.YearCode = TmpQuoteStk.Yearcode And  Q.type = TmpQuoteStk.type And Q.Prefix = TmpQuoteStk.Prefix And Q.Srl = TmpQuoteStk.Srl Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' AND PENDING <> 0 And " _
                                                 & " Q.YearCode+Q.Type+Q.Prefix+Q.Srl in ('" + mRecordSet!link + "') And (Select Name From Itemmaster Where code = TmpQuoteStk.Code)+'       '+ " _
                                                 & "  case when xod<>'' then  ISNULL((Select Top 1 Descr From Allocated Where Code = TmpQuoteStk.code and Allocation ='OD'),'') + ' : ' + TmpQuoteStk.XOD +" _
                                                 & "   (Case when xthk <> '' then ' ' +ISNULL((Select Top 1 Descr From Allocated Where Code = TmpQuoteStk.code and Allocation ='THK'),'') +' : ' + TmpQuoteStk.XTHK else '' end) + " _
@@ -598,43 +601,78 @@ Private Sub BtnSelParty_Click()
                                             If mQuoteStk.EOF <> True Then
                                                 Do While mQuoteStk.EOF <> True
                                                     'GridQuote.TextMatrix(i, 0) = mRecordSet!link
-                                                    GridQuote.TextMatrix(i, n) = Round(mQuoteStk!Rate, 2)
-                                                    GridQuote.Col = n
-                                                    GridQuote.Row = 1
-                                                    GridQuote.CellFontBold = False
-                                                    GridQuote.WordWrap = True
-                                                    If n + 1 >= GridQuote.Cols Then
+                                                    If mQuoteOld <> "" And mQuoteOld = mQuoteStk!Srl Then
+                                                        GridQuote.TextMatrix(i, y) = Round(mQuoteStk!Rate, 2)
+                                                        GridQuote.Col = y
+                                                        GridQuote.Row = 1
+                                                        GridQuote.CellFontBold = False
+                                                        GridQuote.WordWrap = True
+                                                        GridQuote.TextMatrix(0, y + 1) = "VALUE "
+                                                        GridQuote.TextMatrix(i, y + 1) = Round(mQuoteStk!Val, 2)
+                                                        
+                                                        
+                                                        ''''disc
+                                                        GridQuote.TextMatrix(0, y + 2) = "Disc(%) "
+                                                        GridQuote.TextMatrix(i, y + 2) = mQuoteStk!Disc
+                                                        
+                                                        
+                                                        ''''disc
+'                                                        GridQuote.TextMatrix(0, y + 3) = "Disc Amt "
+'                                                        GridQuote.TextMatrix(i, y + 3) = IIf(Val(mQuoteStk!Disc) = 0, 0, Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2))
+                                                        
+                                                        'y = y - 1
+                                                        ''''disc
+                                                        GridQuote.TextMatrix(0, y + 3) = "Net Value "
+                                                        GridQuote.TextMatrix(i, y + 3) = Val(mQuoteStk!Val) - Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2)
+                                                        
+                                                        GridQuote.Col = y
+                                                        GridQuote.Row = 1
+                                                        GridQuote.CellFontBold = False
+                                                        GridQuote.WordWrap = True
+                                                        
+                                                        'y = n
+                                                        'n = xn
+                                                    Else
+                                                        n = n
+                                                        xn = n
+                                                        GridQuote.TextMatrix(i, n) = Round(mQuoteStk!Rate, 2)
+                                                        GridQuote.Col = n
+                                                        GridQuote.Row = 1
+                                                        GridQuote.CellFontBold = False
+                                                        GridQuote.WordWrap = True
+                                                        If n + 1 >= GridQuote.Cols Then
+                                                            GridQuote.Cols = GridQuote.Cols + 1
+                                                        End If
+                                                        
                                                         GridQuote.Cols = GridQuote.Cols + 1
+                                                        n = n + 1
+                                                        GridQuote.TextMatrix(0, n) = "VALUE "
+                                                        GridQuote.TextMatrix(i, n) = Round(mQuoteStk!Val, 2)
+                                                        
+                                                        GridQuote.Cols = GridQuote.Cols + 1
+                                                        n = n + 1
+                                                        ''''disc
+                                                        GridQuote.TextMatrix(0, n) = "Disc(%) "
+                                                        GridQuote.TextMatrix(i, n) = mQuoteStk!Disc
+                                                        
+                                                        'GridQuote.Cols = GridQuote.Cols + 1
+                                                        'n = n + 1
+                                                        ''''disc
+                                                        'GridQuote.TextMatrix(0, n) = "Disc Amt "
+                                                        'GridQuote.TextMatrix(i, n) = IIf(Val(mQuoteStk!Disc) = 0, 0, Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2))
+                                                        
+                                                        GridQuote.Cols = GridQuote.Cols + 1
+                                                        n = n + 1
+                                                        GridQuote.TextMatrix(0, n) = "Net Value "
+                                                        GridQuote.TextMatrix(i, n) = Val(mQuoteStk!Val) - Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2)
+                                                        
+                                                        GridQuote.Col = n
+                                                        GridQuote.Row = 1
+                                                        GridQuote.CellFontBold = False
+                                                        GridQuote.WordWrap = True
+                                                    
                                                     End If
-                                                    
-                                                    GridQuote.Cols = GridQuote.Cols + 1
-                                                    n = n + 1
-                                                    GridQuote.TextMatrix(0, n) = "VALUE "
-                                                    GridQuote.TextMatrix(i, n) = Round(mQuoteStk!Val, 2)
-                                                    
-                                                    GridQuote.Cols = GridQuote.Cols + 1
-                                                    n = n + 1
-                                                    ''''disc
-                                                    GridQuote.TextMatrix(0, n) = "Disc(%) "
-                                                    GridQuote.TextMatrix(i, n) = mQuoteStk!Disc
-                                                    
-                                                    GridQuote.Cols = GridQuote.Cols + 1
-                                                    n = n + 1
-                                                    ''''disc
-                                                    GridQuote.TextMatrix(0, n) = "Disc Amt "
-                                                    GridQuote.TextMatrix(i, n) = IIf(Val(mQuoteStk!Disc) = 0, 0, Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2))
-                                                    
-                                                    GridQuote.Cols = GridQuote.Cols + 1
-                                                    n = n + 1
-                                                    ''''disc
-                                                    GridQuote.TextMatrix(0, n) = "Net Value "
-                                                    GridQuote.TextMatrix(i, n) = Val(mQuoteStk!Val) - Round(mQuoteStk!Val * mQuoteStk!Disc / 100, 2)
-                                                    
-                                                    
-                                                    GridQuote.Col = n + 1
-                                                    GridQuote.Row = 1
-                                                    GridQuote.CellFontBold = False
-                                                    GridQuote.WordWrap = True
+                                                    mQuoteOld = mQuoteStk!Srl
                                                     mQuoteStk.MoveNext
                                                 Loop
                                             End If
@@ -643,6 +681,7 @@ Private Sub BtnSelParty_Click()
                                    Next
                                         'n = n + 2
                                         n = n + 1
+                                        y = n
                                         'GridQuote.Cols = GridQuote.Cols + 1
                                         mRs.MoveNext
                                     Loop
@@ -671,7 +710,7 @@ Private Sub BtnSelParty_Click()
                 For x = 1 To GridQuote.Cols - 1
                      If GridQuote.TextMatrix(0, x) = "Net Value " Then
                         SqlStr = "Select Srl as QtnNo from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name+'QtnNo :'+ Q.srl in ('" + GridQuote.TextMatrix(0, x - 4) + "') "
+                                    & " M.Name+'QtnNo :'+ Q.srl in ('" + GridQuote.TextMatrix(0, x - 3) + "') "
                               
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -711,7 +750,7 @@ Private Sub BtnSelParty_Click()
                                 & " Inner Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -776,7 +815,7 @@ Private Sub BtnSelParty_Click()
                         End If
                      End If
                      If GridQuote.TextMatrix(0, x) = "Net Value " Then
-                        SqlStr = "Select Distinct Fld,Head from Charges where Branch = 'HO' and Doctype in (select Top 1 Type From TmpQuoteStk)  and Fld <>'V001'  order by Fld  "
+                        SqlStr = "Select Distinct Fld,Head from Charges where Branch = 'HO' and Doctype in (select Top 1 Type From TmpQuoteStk)  and Fld <>'V001' and ToPrint = 1 order by Fld  "
                         mChargesRec.CursorLocation = adUseServer
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -789,7 +828,7 @@ Private Sub BtnSelParty_Click()
                                 End If
                                 
                                 SqlStr = "Select Q.Srl,Q." + mVal + " as Val from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Order By Q.srl"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Order By Q.srl"
                                 
                                 mQuoteStk.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                                 'mQuoteStk.Close
@@ -848,7 +887,7 @@ Private Sub BtnSelParty_Click()
                      End If
                     If GridQuote.TextMatrix(0, x) = "Net Value " Then
                         SqlStr = "Select Sum(Taxable)-Sum(ExcAmt) as Taxable from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "') and Q.srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "') and Q.srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
                             Do While mChargesRec.EOF <> True
@@ -876,7 +915,7 @@ Private Sub BtnSelParty_Click()
                      If GridQuote.TextMatrix(0, x) = "Net Value " Then
                         SqlStr = "Select ExcAmt/Amt1*100 as Per,ExcAmt as ExcAmt,isnull((select Top 1 ExciseAs from stockexcise where SubType = 'QP' and Branch = 'HO' And YearCode  = Q.YearCode and Type = Q.Type " _
                                 & " and Prefix = Q.Prefix And Srl = Q.Srl),0) as ExAs from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
                               
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -919,7 +958,7 @@ Private Sub BtnSelParty_Click()
                      If GridQuote.TextMatrix(0, x) = "Net Value " Then
                         
                         SqlStr = "Select Sum(Taxable) as Taxable from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')   and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')   and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
                               
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -951,7 +990,7 @@ Private Sub BtnSelParty_Click()
                      If GridQuote.TextMatrix(0, x) = "Net Value " Then
                         
                         SqlStr = "Select Q.TaxCode,sum(Q.TaxAmt+Q.Addtax) as TaxAmt from TmpQuote Q Inner join Master m on m.Code = Q.Code  Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "') Group BY TaxCode "
                               
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -998,7 +1037,7 @@ Private Sub BtnSelParty_Click()
                                 & " Left Outer Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
@@ -1034,7 +1073,7 @@ Private Sub BtnSelParty_Click()
                                 & " Left Outer Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "') and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
@@ -1067,7 +1106,7 @@ Private Sub BtnSelParty_Click()
                                 & " Inner Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -1099,7 +1138,7 @@ Private Sub BtnSelParty_Click()
                                 & " Inner Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -1131,7 +1170,7 @@ Private Sub BtnSelParty_Click()
                                 & " Inner Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
@@ -1218,7 +1257,7 @@ Private Sub BtnSelParty_Click()
                                 & " Inner Join AddonQP On Q.Branch = AddonQP.Branch And Q.YearCode = AddonQP.YearCode And " _
                                 & " Q.Type = AddonQP.Type And Q.Prefix = AddonQP.Prefix And Q.Srl = AddonQP.Srl " _
                                 & " Where Q.Branch = 'HO' And Q.MainType='PR' And Q.code=m.code and Left(Q.Authorise,1) = 'A' And " _
-                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 4) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
+                                    & " M.Name in ('" + GridQuote.TextMatrix(0, x - 3) + "')  and Q.Srl in ('" + GridQuote.TextMatrix(xyz, x - 1) + "')"
 
                         mChargesRec.Open SqlStr, cnnDataBase, adOpenDynamic, adLockReadOnly
                         If mChargesRec.EOF <> True Then
